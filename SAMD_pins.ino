@@ -13,15 +13,15 @@ void setup() {
 
   // Set some pins up doing something different, so that the display will be
   //   more ... interesting.
-  Serial1.begin(9600);
+  Serial1.begin(9600);  // Start both our "hardware serial" ports.
   Serial.begin(9600);
-  SPI.begin();
-  Wire.begin();
-  analogWrite(10, 55);
+  SPI.begin();			/* Start SPI */
+  Wire.begin();			/* Start I2C */
+  analogWrite(10, 55);		/* PWM on both types of timers */
   analogWrite(12, 55);
   for (int j = 0; j < 6; j++)
-    (void) analogRead(j);  // read from analog pins
-  pinMode(13, OUTPUT);
+    (void) analogRead(j);  // read from analog pins - sets analog mode.
+  pinMode(13, OUTPUT);	   /* and at least one output */
 }
 
 void loop() {
@@ -330,13 +330,154 @@ void decode_SERCOMA(int pin, int pmux)
   }
 }
 
+const char *pin_to_tc_info_a[] = {
+/* PA00 */ "TCC2/WO0",
+/* PA01 */ "TCC2/WO1",
+/* PA02 */ nullstr,
+/* PA03 */ nullstr,
+/* PA04 */ "TCC0/WO0",
+/* PA05 */ "TCC0/WO1",
+/* PA06 */ "TCC1/WO0",
+/* PA07 */ "TCC1/WO1",
+/* PA08 */ "TCC0/WO0",
+/* PA09 */ "TCC0/WO1",
+/* PA10 */ "TCC1/WO0",
+/* PA11 */ "TCC1/WO1",
+/* PA12 */ "TCC2/WO0",
+/* PA13 */ "TCC2/WO1",
+/* PA14 */ "TC3/WO0",
+/* PA15 */ "TC3/WO1",
+/* PA16 */ "TCC2/WO0",
+/* PA17 */ "TCC2/WO1",
+/* PA18 */ "TC3/WO0",
+/* PA19 */ "TC3/WO1",
+/* PA20 */ "TC7/WO0",
+/* PA21 */ "TC7/WO1",
+/* PA22 */ "TC4/WO0",
+/* PA23 */ "TC4/WO1",
+/* PA24 */ "TC5/WO0",
+/* PA25 */ "TC5/WO1",
+/* PA26 */ nullstr,
+/* PA27 */ nullstr,
+/* PA28 */ nullstr,
+/* PA29 */ nullstr,
+/* PA30 */ "TCC1/WO0",
+/* PA31 */ "TCC1/WO0"
+};
+
+const char *pin_to_tc_info_b[] = {
+/* PB00 */ "TC7/WO0",
+/* PB01 */ "TC7/WO1",
+/* PB02 */ "TC6/WO0",
+/* PB03 */ "TC6/WO1",
+/* PB04 */ nullstr,
+/* PB05 */ nullstr,
+/* PB06 */ nullstr,
+/* PB07 */ nullstr,
+/* PB08 */ "TC4/WO0",
+/* PB09 */ "TC4/WO1",
+/* PB10 */ "TC5/WO0",
+/* PB11 */ "TC5/WO1",
+/* PB12 */ "TC4/WO0",
+/* PB13 */ "TC4/WO1",
+/* PB14 */ "TC5/WO0",
+/* PB15 */ "TC5/WO1",
+/* PB16 */ "TC6/WO0",
+/* PB17 */ "TC6/WO1",
+/* PB18,19,20, 21 */ nullstr, nullstr, nullstr, nullstr, 
+/* PB22 */ "TC7/WO0",
+/* PB23 */ "TC7/WO1",
+/* PB24-29 */ nullstr,nullstr,nullstr,nullstr,nullstr,nullstr,
+/* PB30 */ "TCC0/WO0",
+/* PB31 */ "TCC0/WO1",
+};
+
 void decode_TC(int pin, int pmux)
 {
-  mySerial.print(pinmux_names[pmux]);
+  PortGroup *port = digitalPinToPort(pin);
+  int bitno = g_APinDescription[pin].ulPin;
+
+  if (port == &PORT->Group[0]) {
+    if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
+      mySerial.print(pin_to_tc_info_a[bitno]);
+    }
+  }
+  if (port == &PORT->Group[1]) {
+    if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
+      mySerial.print(pin_to_tc_info_b[bitno]);
+    }
+  }
 }
+const char *pin_to_tcc_info_a[] = {
+/* PA00 */ nullstr,
+/* PA01 */ nullstr,
+/* PA02 */ nullstr,
+/* PA03 */ nullstr,
+/* PA04 */ nullstr,
+/* PA05 */ nullstr,
+/* PA06 */ nullstr,
+/* PA07 */ nullstr,
+/* PA08 */ "TCC1/WO2",
+/* PA09 */ "TCC1/WO3",
+/* PA10 */ "TCC0/WO2",
+/* PA11 */ "TCC0/WO3",
+/* PA12 */ "TCC0/WO6",
+/* PA13 */ "TCC0/WO7",
+/* PA14 */ "TCC0/WO4",
+/* PA15 */ "TCC0/WO5",
+/* PA16 */ "TCC0/WO6",
+/* PA17 */ "TCC0/WO7",
+/* PA18 */ "TCC0/WO2",
+/* PA19 */ "TCC0/WO3",
+/* PA20 */ "TCCO/WO6",
+/* PA21 */ "TCC0/WO7",
+/* PA22 */ "TCC0/WO5",
+/* PA23 */ "TCC1/WO2",
+/* PA24 */ "TCC1/WO3",
+};
+
+
+const char *pin_to_tcc_info_b[] = {
+/* PB00 */  nullstr,
+/* PB01 */  nullstr,
+/* PB02 */  nullstr,
+/* PB03 */  nullstr,
+/* PB04 */  nullstr,
+/* PB05 */  nullstr,
+/* PB06 */  nullstr,
+/* PB07 */  nullstr,
+/* PB08 */  nullstr,
+/* PB09 */  nullstr,
+/* PB10 */ "TCC0/WO4",
+/* PB11 */ "TCC0/WO5",
+/* PB12 */ "TCC0/WO6",
+/* PB13 */ "TCC0/WO7",
+/* PB14 */  nullstr,
+/* PB15 */  nullstr,
+/* PB16 */ "TCC0/WO4",
+/* PB17 */ "TCC0/WO5",
+/* 18-21 */  nullstr, nullstr, nullstr, nullstr,
+/* PB22-29 */  nullstr,nullstr,nullstr,nullstr,nullstr,nullstr,nullstr,nullstr,
+/* PB30 */ "TCC1/WO2",
+/* PB31 */ "TCC1/WO3"
+};
+
+
 void decode_TCC(int pin, int pmux)
 {
-  mySerial.print(pinmux_names[pmux]);
+  PortGroup *port = digitalPinToPort(pin);
+  int bitno = g_APinDescription[pin].ulPin;
+
+  if (port == &PORT->Group[0]) {
+    if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
+      mySerial.print(pin_to_tcc_info_a[bitno]);
+    }
+  }
+  if (port == &PORT->Group[1]) {
+    if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
+      mySerial.print(pin_to_tcc_info_b[bitno]);
+    }
+  }
 }
 void decode_COMM(int pin, int pmux)
 {
