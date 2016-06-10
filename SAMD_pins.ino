@@ -216,7 +216,7 @@ void decode_SERCOM(int pin, int pmux)
       sercomno = *pin_to_SERCOMB_info[bitno] - '0';
     }
   }
-  if (sercomno > 0) {  // If the string was null, sercomno will be -48
+  if (sercomno >= 0) {  // If the string was null, sercomno will be -48
     s = sercomports[sercomno];
     sercomtype = s->USART.CTRLA.bit.MODE;
     if (sercomtype < ARRAYSIZE(sercomtype_names)) {
@@ -321,7 +321,7 @@ void decode_SERCOMA(int pin, int pmux)
       sercomno = *pin_to_SERCOMALTB_info[bitno] - '0';
     }
   }
-  if (sercomno > 0) {  // If the string was null, sercomno will be -48
+  if (sercomno >= 0) {  // If the string was null, sercomno will be -48
     s = sercomports[sercomno];
     sercomtype = s->USART.CTRLA.bit.MODE;
     if (sercomtype < ARRAYSIZE(sercomtype_names)) {
