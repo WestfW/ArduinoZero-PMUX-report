@@ -1,3 +1,9 @@
+/*
+ * SAMD_pins.ino  -  June 2016 by Bill Westfield (WestfW@westfw.info)
+ * Copyright 2016 by Bill Westfield
+ * Licensed under the terms of the "MIT License."
+ */
+
 #include <Wire.h>
 #include <SPI.h>
 
