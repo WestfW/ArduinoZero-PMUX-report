@@ -1,15 +1,25 @@
 #include <Wire.h>
 #include <SPI.h>
 
+/*
+ * Adjust these as necessary
+ */
+
+/*
+ * For Sparkfun SAMD21 boards, use SerialUSB device
+ */
 #define mySerial SerialUSB
-#define ARRAYSIZE(a) (sizeof a/sizeof a[0])
+#define PRINT(...) mySerial.print(__VA_ARGS__)
+#define PRINTLN(...) mySerial.println(__VA_ARGS__)
+
+
 
 void setup() {
   mySerial.begin(9600);
   while (!mySerial)
     ;
-  mySerial.println("SAMD Pin State Report");
-  mySerial.println();
+  PRINTLN("SAMD Pin State Report");
+  PRINTLN();
 
   // Set some pins up doing something different, so that the display will be
   //   more ... interesting.
@@ -45,20 +55,20 @@ void loop() {
 	print_pinmux(pin, pmuxval);
       } else {
         // Pinmux not enabled - port is GPIO
-        mySerial.print("GPIO ");
+        PRINT("GPIO ");
         if (port->DIR.reg & (1 << bitno)) { // Decode pinmode (direction.)
-          mySerial.print("O");
+          PRINT("O");
         } else {
-          mySerial.print("I");
+          PRINT("I");
         }
       } // Pinmux or GPIO
     } // Pin existance
-    mySerial.println();
+    PRINTLN();
   } // "pin" for loop
 
   while (mySerial.read() < 0)
     ;  // wait for character to run again.
-  mySerial.println("\nRunning again!\n");
+  PRINTLN("\nRunning again!\n");
 }
 
 
@@ -68,18 +78,21 @@ boolean print_pinno(int i)
   if (pintype == PIO_NOT_A_PIN) {
     return false;
   }
-  mySerial.print(i);
+  PRINT(i);
   if (i < 10)
-    mySerial.print(" ");
+    PRINT(" ");
   if (pintype == PIO_ANALOG) {  // try to detect and renumber Analog pins.
-    mySerial.print(" (A");
-    mySerial.print(i - PIN_A0);
-    mySerial.print(") ");
+    PRINT(" (A");
+    PRINT(i - PIN_A0);
+    PRINT(") ");
   } else {
-    mySerial.print("      ");
+    PRINT("      ");
   }
   return true;
 }
+
+
+#define ARRAYSIZE(a) (sizeof a/sizeof a[0])
 
 void (*PMUX_decode_func[8])(int, int) = {
   decode_EIC,
@@ -94,10 +107,10 @@ void (*PMUX_decode_func[8])(int, int) = {
 
 void print_pinmux(int pin, int pmuxval)
 {
-  mySerial.print("PMUX");
-  mySerial.print("(");
-  mySerial.print(pmuxval);
-  mySerial.print(") ");
+  PRINT("PMUX");
+  PRINT("(");
+  PRINT(pmuxval);
+  PRINT(") ");
   if (pmuxval < (sizeof PMUX_decode_func/sizeof PMUX_decode_func[0])) {
     PMUX_decode_func[pmuxval](pin, pmuxval);
   }
@@ -123,11 +136,11 @@ const char *pinmux_names[8] = {
 
 void decode_EIC(int pin, int pmux)
 {
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
 }
 void decode_ADC(int pin, int pmux)
 {
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
 }
 const char *pin_to_SERCOMA_info[] = {
   /* PA00 */ nullstr,
@@ -197,10 +210,10 @@ void decode_SERCOM(int pin, int pmux)
   int sercomno, sercomtype;
   Sercom *s;
 
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
   if (port == &PORT->Group[0]) {
     if (bitno < (sizeof pin_to_SERCOMA_info/sizeof pin_to_SERCOMA_info[0])) {
-      mySerial.print(pin_to_SERCOMA_info[bitno]);
+      PRINT(pin_to_SERCOMA_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
        */
@@ -209,7 +222,7 @@ void decode_SERCOM(int pin, int pmux)
   }
   if (port == &PORT->Group[1]) {
     if (bitno < (sizeof pin_to_SERCOMB_info/sizeof pin_to_SERCOMB_info[0])) {
-      mySerial.print(pin_to_SERCOMB_info[bitno]);
+      PRINT(pin_to_SERCOMB_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
        */
@@ -220,7 +233,7 @@ void decode_SERCOM(int pin, int pmux)
     s = sercomports[sercomno];
     sercomtype = s->USART.CTRLA.bit.MODE;
     if (sercomtype < ARRAYSIZE(sercomtype_names)) {
-      mySerial.print(sercomtype_names[sercomtype]);
+      PRINT(sercomtype_names[sercomtype]);
     } 
   }
 }
@@ -302,10 +315,10 @@ void decode_SERCOMA(int pin, int pmux)
   int sercomno, sercomtype;
   Sercom *s;
 
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
   if (port == &PORT->Group[0]) {
     if (bitno < ARRAYSIZE(pin_to_SERCOMALTA_info)) {
-      mySerial.print(pin_to_SERCOMALTA_info[bitno]);
+      PRINT(pin_to_SERCOMALTA_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
        */
@@ -314,7 +327,7 @@ void decode_SERCOMA(int pin, int pmux)
   }
   if (port == &PORT->Group[1]) {
     if (bitno < ARRAYSIZE(pin_to_SERCOMALTB_info)) {
-      mySerial.print(pin_to_SERCOMALTB_info[bitno]);
+      PRINT(pin_to_SERCOMALTB_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
        */
@@ -325,7 +338,7 @@ void decode_SERCOMA(int pin, int pmux)
     s = sercomports[sercomno];
     sercomtype = s->USART.CTRLA.bit.MODE;
     if (sercomtype < ARRAYSIZE(sercomtype_names)) {
-      mySerial.print(sercomtype_names[sercomtype]);
+      PRINT(sercomtype_names[sercomtype]);
     }
   }
 }
@@ -399,12 +412,12 @@ void decode_TC(int pin, int pmux)
 
   if (port == &PORT->Group[0]) {
     if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
-      mySerial.print(pin_to_tc_info_a[bitno]);
+      PRINT(pin_to_tc_info_a[bitno]);
     }
   }
   if (port == &PORT->Group[1]) {
     if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
-      mySerial.print(pin_to_tc_info_b[bitno]);
+      PRINT(pin_to_tc_info_b[bitno]);
     }
   }
 }
@@ -470,12 +483,12 @@ void decode_TCC(int pin, int pmux)
 
   if (port == &PORT->Group[0]) {
     if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
-      mySerial.print(pin_to_tcc_info_a[bitno]);
+      PRINT(pin_to_tcc_info_a[bitno]);
     }
   }
   if (port == &PORT->Group[1]) {
     if (bitno < ARRAYSIZE(pin_to_tc_info_a)) {
-      mySerial.print(pin_to_tcc_info_b[bitno]);
+      PRINT(pin_to_tcc_info_b[bitno]);
     }
   }
 }
@@ -484,19 +497,19 @@ void decode_COMM(int pin, int pmux)
   PortGroup *port = digitalPinToPort(pin);
   int bitno = g_APinDescription[pin].ulPin;
 
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
   // PA23..PA25 are for USB
   if (port == &PORT->Group[0] && (bitno >= 23 && bitno <= 25)) {
-    mySerial.print("(USB)");
+    PRINT("(USB)");
   }
   // PA30..PA31 are for SWD (Serial JTAG debug)
   if (port == &PORT->Group[0] && (bitno >= 30 && bitno <= 31)) {
-    mySerial.print("(SWD)");
+    PRINT("(SWD)");
   }
 }
 void decode_CLK(int pin, int pmux)
 {
-  mySerial.print(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);
 }
 
 void print_portname(int pin)
@@ -505,14 +518,14 @@ void print_portname(int pin)
   int bitno = g_APinDescription[pin].ulPin;
 
   if (port == &PORT->Group[0]) {
-    mySerial.print("PA");
+    PRINT("PA");
   }
   if (port == &PORT->Group[1]) {
-    mySerial.print("PB");
+    PRINT("PB");
   }
   if (bitno < 10) {
-    mySerial.print("0");
+    PRINT("0");
   }
-  mySerial.print(bitno);
-  mySerial.print("  ");
+  PRINT(bitno);
+  PRINT("  ");
 }
