@@ -19,7 +19,10 @@
 #define PRINTLN(...) mySerial.println(__VA_ARGS__)
 
 
-
+/*
+ * Standard Arduio setup() function.
+ * Turn on some of the interesting features so we can see how it works.
+ */
 void setup() {
   mySerial.begin(9600);
   while (!mySerial)
@@ -41,7 +44,7 @@ void setup() {
 }
 
 void loop() {
-  for (int pin = 0; pin < PINS_COUNT; pin++) {
+  for (int pin = 0; pin < PINS_COUNT; pin++) {  // For all defined pins
     if (print_pinno(pin)) {  // Does pin exist?
 
       int bitno = g_APinDescription[pin].ulPin;
@@ -78,6 +81,10 @@ void loop() {
 }
 
 
+/*
+ * Print an Arduino pin number, and it's "name."
+ * (in particular, check for the Analog pins and label them)
+ */
 boolean print_pinno(int i)
 {
   int pintype = g_APinDescription[i].ulPinType;
@@ -98,8 +105,17 @@ boolean print_pinno(int i)
 }
 
 
+// Convenient macro
 #define ARRAYSIZE(a) (sizeof a/sizeof a[0])
 
+/*
+ * Table of functions to do decoding of individual pinmux values.
+ * In general, each PMUX value has a standard function "class", and then
+ * you have to do further decoding based on port/bit and perhaps peripheral
+ * internals to figure out the details.  (For example, a SERCOM PMUX value
+ * can apply to one of six different SERCOM modules on a SAMD21, and an ANALOG
+ * PMUX value could be ADC, REF, DAC, or TouchController.)
+ */
 void (*PMUX_decode_func[8])(int, int) = {
   decode_EIC,
   decode_ADC,
@@ -111,13 +127,18 @@ void (*PMUX_decode_func[8])(int, int) = {
   decode_CLK
 };
 
+/*
+ * Print the raw PMUX value
+ * Call via the function table for name and 
+details.
+ */
 void print_pinmux(int pin, int pmuxval)
 {
   PRINT("PMUX");
   PRINT("(");
   PRINT(pmuxval);
   PRINT(") ");
-  if (pmuxval < (sizeof PMUX_decode_func/sizeof PMUX_decode_func[0])) {
+  if (pmuxval < ARRAYSIZE(PMUX_decode_func)) {
     PMUX_decode_func[pmuxval](pin, pmuxval);
   }
 }
@@ -142,12 +163,22 @@ const char *pinmux_names[8] = {
 
 void decode_EIC(int pin, int pmux)
 {
-  PRINT(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);   // default action
 }
+
 void decode_ADC(int pin, int pmux)
 {
-  PRINT(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);   // default action
 }
+
+/*
+ * Sercom and Sercom ALT decoding.
+ * pins can have one of two sercom settings, which are similar but rather
+ * randomly (?) assigned to sercom functions.  The "P0" part refers to the
+ * "pad" within the sercom unit (each Sercom has up to 4 pads.)  Mapping
+ * between "pad" and actual function is controlled by fields in the CTRLA reg
+ */
+
 const char *pin_to_SERCOMA_info[] = {
   /* PA00 */ nullstr,
   /* PA01 */ nullstr,
@@ -198,8 +229,17 @@ const char *pin_to_SERCOMB_info[] = {
 /* PB17 */ "5 P1"
 };
 
+/*
+ * SERCOM_INSTS is defined in the Atmel chip-specific samXXXX.h file, as a
+ * list of all the Sercom units available on that specific chip.  (some chips
+ * have more than others.
+ */
+
 Sercom * sercomports[] = SERCOM_INSTS;
 
+/*
+ * Sercom configuration type indexed by CTRLA.MODE
+ */
 char *sercomtype_names[] = {
   "(USART)",
   "(UART)",
@@ -208,6 +248,7 @@ char *sercomtype_names[] = {
   "(I2C Slave)",
   "(I2C Master)"
 };
+
 
 void decode_SERCOM(int pin, int pmux)
 {
@@ -218,7 +259,7 @@ void decode_SERCOM(int pin, int pmux)
 
   PRINT(pinmux_names[pmux]);
   if (port == &PORT->Group[0]) {
-    if (bitno < (sizeof pin_to_SERCOMA_info/sizeof pin_to_SERCOMA_info[0])) {
+    if (bitno < ARRAYSIZE(pin_to_SERCOMA_info)) {
       PRINT(pin_to_SERCOMA_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
@@ -227,7 +268,7 @@ void decode_SERCOM(int pin, int pmux)
     }
   }
   if (port == &PORT->Group[1]) {
-    if (bitno < (sizeof pin_to_SERCOMB_info/sizeof pin_to_SERCOMB_info[0])) {
+    if (bitno < ARRAYSIZE(pin_to_SERCOMB_info)) {
       PRINT(pin_to_SERCOMB_info[bitno]);
       /*
        * Get sercom number from the string.  (Ugly, but saves space.)
@@ -243,6 +284,10 @@ void decode_SERCOM(int pin, int pmux)
     } 
   }
 }
+
+/*
+ * Tables for SercomALT PMUX value
+ */
 
 const char *pin_to_SERCOMALTA_info[] = {
 /* PA00 */ "1 P0",
@@ -348,6 +393,13 @@ void decode_SERCOMA(int pin, int pmux)
     }
   }
 }
+
+/*
+ * Decoding for Timer PMUX values.
+ * SAMD has two types of timers a "Timer/Counter" (TC) and a
+ * "Timer/Counter for Control (TCC).  Both can be used to implement the
+ * Arduino PWM-based analogWrite() functionality.
+ */
 
 const char *pin_to_tc_info_a[] = {
 /* PA00 */ "TCC2/WO0",
@@ -498,6 +550,10 @@ void decode_TCC(int pin, int pmux)
     }
   }
 }
+
+/*
+ * "COM" are special communications peripherals like USB, SWD, or ISS
+ */
 void decode_COMM(int pin, int pmux)
 {
   PortGroup *port = digitalPinToPort(pin);
@@ -515,9 +571,12 @@ void decode_COMM(int pin, int pmux)
 }
 void decode_CLK(int pin, int pmux)
 {
-  PRINT(pinmux_names[pmux]);
+  PRINT(pinmux_names[pmux]);   // default action
 }
 
+/*
+ * Given an Arduino pin number, print the datasheet-style Port and Bit numbers
+ */
 void print_portname(int pin)
 {
   PortGroup *port = digitalPinToPort(pin);
@@ -530,7 +589,7 @@ void print_portname(int pin)
     PRINT("PB");
   }
   if (bitno < 10) {
-    PRINT("0");
+    PRINT("0");      // Output formatting with possible leading 0
   }
   PRINT(bitno);
   PRINT("  ");
